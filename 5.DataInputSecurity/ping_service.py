@@ -1,10 +1,15 @@
 import argparse
 import subprocess
+import re
 
 def ping_device(target):
-    command = f"ping -c 4 {target}"
+    #command = f"ping -c 4 {target}"
+    if not re.match(r"^[a-zA-Z0-9.-]+$", target):
+        print(f"dangerous characters detected '{target}'")
+        return
+    command = ["ping", "-c", "4", target]
     try:
-        output = subprocess.check_output(command, shell=True, stderr=subprocess.STDOUT)
+        output = subprocess.check_output(command, shell=False, stderr=subprocess.STDOUT)
         print(output.decode())
     except subprocess.CalledProcessError as e:
         print(f"Failed to ping {target}\n{e.output.decode()}")
